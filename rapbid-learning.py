@@ -7,7 +7,8 @@ import tensorflow as tf
 import numpy as np
 
 base_url = 'http://whale.hacking-lab.com:2222'
-train_samples = 10
+train_samples = 100
+train_runs = 100000
 
 # get as much training data as we like
 print('collecting training samples...')
@@ -24,6 +25,8 @@ y_train = np.array(np.empty([train_samples]))
 
 for sample in range(train_samples):
     train_req = requests.get(base_url + '/train')
+    if (sample % (train_samples / 100) == 0):
+        print('run ' + str(round(sample / train_samples * 100)) + ' of 100')
     if train_req.status_code == requests.codes.ok:
         try:
             #print(train_req.json())
@@ -75,7 +78,7 @@ y = tf.placeholder(tf.float32, shape=[None], name='output')
 logistic_model = tf.sigmoid(a1*x1 + a2*x2 + a3*x3 + a4*x4 + a5*x5 + a6*x6 + a7*x7 + b)
 #TODO: use cross entropy instead of least squares here
 loss = tf.reduce_sum(tf.square(logistic_model - y))
-optimizer = tf.train.GradientDescentOptimizer(0.01) #TODO: explain this number
+optimizer = tf.train.GradientDescentOptimizer(0.001) #TODO: explain this number
 train = optimizer.minimize(loss)
 
 # run training loop
@@ -83,8 +86,32 @@ print('running training loop...')
 init = tf.global_variables_initializer()
 session = tf.Session()
 session.run(init)
-for i in range(1000): #TODO: explain this number
+for i in range(train_runs):
+    if (i % (train_runs / 100) == 0):
+        print('run ' + str(round(i / train_runs * 100)) + ' of 100')
     session.run(train, feed_dict={x1: x1_train, x2: x2_train, x3: x3_train, x4: x4_train,
                                   x5: x5_train, x6: x6_train, x7: x7_train, y: y_train})
 
 # get test data, classify and return it!
+
+
+# evaluate training accuracy
+#print('a1: {0} a2: {0} b: {1} loss: {2}'.format(curr_a1, curr_a2, curr_b, curr_loss))
+#print('wrong classifications: {0}'.format(np.sum(y_out != y_train)))
+
+goodtail, a1c, a2c, a3c, a4c, a5c, a6c, a7c, b, lossc = session.run([logistic_model, a1, a2, a3, a4, a5, a6, a7, b, loss],
+feed_dict={x1: x1_train, x2: x2_train, x3: x3_train, x4: x4_train, x5: x5_train, x6: x6_train, x7: x7_train, y: y_train})
+print('loss: ', end='')
+print(lossc)
+print('test data: ', end='')
+print(y_train)
+print('result data: ', end='')
+print(np.around(goodtail))
+print('output vector: ', end='')
+print(goodtail)
+
+correct_tails = np.sum(np.around(goodtail) == y_train)
+print('percent correct: ', end='')
+print(correct_tails / train_samples * 100)
+
+print(a1c, a2c, a3c, a4c, a5c, a6c, a7c, b)
