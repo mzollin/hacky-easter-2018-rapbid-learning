@@ -2,14 +2,13 @@
 
 # Copyright (c) 2018 Marco Zollinger <marco@freelabs.space>
 
-import json
 import requests
 import tensorflow as tf
 import numpy as np
 
 base_url = 'http://whale.hacking-lab.com:2222'
-train_samples = 10
-train_runs = 1000
+train_samples = 100
+train_runs = 10000
 
 # get as much training data as we like
 print('collecting training samples...')
@@ -31,7 +30,6 @@ for sample in range(train_samples):
         print('run ' + str(round(sample / train_samples * 100)) + ' of 100')
     if train_req.status_code == requests.codes.ok:
         try:
-            #print(train_req.json())
             # save training data
             # TODO: get the required number of samples, even after exceptions
             json_sample = train_req.json()
@@ -116,25 +114,19 @@ print(correct_tails / train_samples * 100)
 print(a1c, a2c, a3c, a4c, a5c, a6c, a7c, bc)
 
 #TODO: remove hardcoded coefficients
-a1c = -1.24541
-a2c = 0.18913
-a3c = 0.29244
-a4c = 6.38998
-a5c = 0.20899
-a6c = -1.25035
-a7c = -1.57856
-bc = 1.16029
-lossc = 0.00733
+#a1c = -1.24541
+#a2c = 0.18913
+#a3c = 0.29244
+#a4c = 6.38998
+#a5c = 0.20899
+#a6c = -1.25035
+#a7c = -1.57856
+#bc = 1.16029
+#lossc = 0.00733
 
 # TODO: explain this number
-if lossc < 0.1:
-    #jar = requests.cookies.RequestsCookieJar()
-    proxies = {
-        'http': 'localhost',
-        'https': 'localhost',
-    }
+if lossc < 1:
     s = requests.Session()
-    #s.proxies = proxies
     test_req = s.get(base_url + '/gate')
     if train_req.status_code == requests.codes.ok:
         try:
@@ -151,33 +143,18 @@ if lossc < 0.1:
                 x7t = int(i[7])
                 outp = a1c*x1t + a2c*x2t + a3c*x3t + a4c*x4t + a5c*x5t + a6c*x6t + a7c*x7t + bc
                 result = np.around(1 / (1 + np.exp(-outp)))
-                #print(a1c*x1t + a2c*x2t + a3c*x3t + a4c*x4t + a5c*x5t + a6c*x6t + a7c*x7t + bc)
-
-                #goodtailr, a1r, a2r, a3r, a4r, a5r, a6r, a7r, br, lossr = session.run([logistic_model, a1, a2, a3, a4, a5, a6, a7, b, loss],
-                #feed_dict={x1: x1t, x2: x2t, x3: x3t, x4: x4t, x5: x5t, x6: x6t, x7: x7t, y: y_train})
-                #result = np.around(goodtailr)
                 #np.put(classifications, i, result)
                 classifications = np.append(classifications, result)
-            print(len(classifications))
             classifications = classifications.astype(int)
-            #print(classifications)
-            #print(classifications.tolist())
             json_data = classifications.tolist()
-            print(len(json_data))
-            #print(json_data)
             fucking_cookie = test_req.cookies['session_id']
             fucking_dict = {}
             fucking_dict['session_id'] = fucking_cookie
-            #print(len(json_test))
-            #print(len(json_data))
-            #jar = test_req.cookies
             sub_req = s.post(base_url + '/predict', json = json_data, cookies = fucking_dict)
-            #print(sub_req.cookies)
-            #print(sub_req.cookies)
             print(sub_req.status_code)
             print(sub_req.text)
             print(fucking_cookie)
-            # TEST!
+            # get reward!
         except ValueError as e:
             print("JSON decoder value error: {}".format(e))
     else:
