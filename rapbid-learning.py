@@ -23,9 +23,9 @@ x6_train = np.array(np.zeros([train_samples]))
 x7_train = np.array(np.zeros([train_samples]))
 y_train = np.array(np.zeros([train_samples]))
 
+s = requests.Session()
 for sample in range(train_samples):
-    # use a session for increased performance?
-    train_req = requests.get(base_url + '/train')
+    train_req = s.get(base_url + '/train')
     if (sample % (train_samples / 100) == 0):
         print('run ' + str(round(sample / train_samples * 100)) + ' of 100')
     if train_req.status_code == requests.codes.ok:
