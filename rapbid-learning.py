@@ -2,28 +2,30 @@
 
 # Copyright (c) 2018 Marco Zollinger <marco@freelabs.space>
 
+import json
 import requests
 import tensorflow as tf
 import numpy as np
 
 base_url = 'http://whale.hacking-lab.com:2222'
-train_samples = 100
-train_runs = 100000
+train_samples = 10
+train_runs = 1000
 
 # get as much training data as we like
 print('collecting training samples...')
 
-x1_train = np.array(np.empty([train_samples]))
-x2_train = np.array(np.empty([train_samples]))
-x3_train = np.array(np.empty([train_samples]))
-x4_train = np.array(np.empty([train_samples]))
-x5_train = np.array(np.empty([train_samples]))
-x6_train = np.array(np.empty([train_samples]))
-x7_train = np.array(np.empty([train_samples]))
-y_train = np.array(np.empty([train_samples]))
-
+# TODO: revert to np.empty()?
+x1_train = np.array(np.zeros([train_samples]))
+x2_train = np.array(np.zeros([train_samples]))
+x3_train = np.array(np.zeros([train_samples]))
+x4_train = np.array(np.zeros([train_samples]))
+x5_train = np.array(np.zeros([train_samples]))
+x6_train = np.array(np.zeros([train_samples]))
+x7_train = np.array(np.zeros([train_samples]))
+y_train = np.array(np.zeros([train_samples]))
 
 for sample in range(train_samples):
+    # use a session for increased performance?
     train_req = requests.get(base_url + '/train')
     if (sample % (train_samples / 100) == 0):
         print('run ' + str(round(sample / train_samples * 100)) + ' of 100')
@@ -92,14 +94,11 @@ for i in range(train_runs):
     session.run(train, feed_dict={x1: x1_train, x2: x2_train, x3: x3_train, x4: x4_train,
                                   x5: x5_train, x6: x6_train, x7: x7_train, y: y_train})
 
-# get test data, classify and return it!
-
-
 # evaluate training accuracy
 #print('a1: {0} a2: {0} b: {1} loss: {2}'.format(curr_a1, curr_a2, curr_b, curr_loss))
 #print('wrong classifications: {0}'.format(np.sum(y_out != y_train)))
 
-goodtail, a1c, a2c, a3c, a4c, a5c, a6c, a7c, b, lossc = session.run([logistic_model, a1, a2, a3, a4, a5, a6, a7, b, loss],
+goodtail, a1c, a2c, a3c, a4c, a5c, a6c, a7c, bc, lossc = session.run([logistic_model, a1, a2, a3, a4, a5, a6, a7, b, loss],
 feed_dict={x1: x1_train, x2: x2_train, x3: x3_train, x4: x4_train, x5: x5_train, x6: x6_train, x7: x7_train, y: y_train})
 print('loss: ', end='')
 print(lossc)
@@ -114,4 +113,70 @@ correct_tails = np.sum(np.around(goodtail) == y_train)
 print('percent correct: ', end='')
 print(correct_tails / train_samples * 100)
 
-print(a1c, a2c, a3c, a4c, a5c, a6c, a7c, b)
+print(a1c, a2c, a3c, a4c, a5c, a6c, a7c, bc)
+
+#TODO: remove hardcoded coefficients
+a1c = -1.24541
+a2c = 0.18913
+a3c = 0.29244
+a4c = 6.38998
+a5c = 0.20899
+a6c = -1.25035
+a7c = -1.57856
+bc = 1.16029
+lossc = 0.00733
+
+# TODO: explain this number
+if lossc < 0.1:
+    #jar = requests.cookies.RequestsCookieJar()
+    proxies = {
+        'http': 'localhost',
+        'https': 'localhost',
+    }
+    s = requests.Session()
+    #s.proxies = proxies
+    test_req = s.get(base_url + '/gate')
+    if train_req.status_code == requests.codes.ok:
+        try:
+            json_test = test_req.json()['data']
+            classifications = np.array(np.empty(len(json_test)))
+            for i in range(len(json_test)):
+                x1t = gender_ints[json_test[i][1]]
+                x2t = json_test[i][2]
+                x3t = color_ints[json_test[i][3]]
+                x4t = json_test[i][4]
+                x5t = json_test[i][5]
+                x6t = json_test[i][6]
+                x7t = int(json_test[i][7])
+                outp = a1c*x1t + a2c*x2t + a3c*x3t + a4c*x4t + a5c*x5t + a6c*x6t + a7c*x7t + bc
+                result = np.around(1 / (1 + np.exp(-outp)))
+                #print(a1c*x1t + a2c*x2t + a3c*x3t + a4c*x4t + a5c*x5t + a6c*x6t + a7c*x7t + bc)
+
+                #goodtailr, a1r, a2r, a3r, a4r, a5r, a6r, a7r, br, lossr = session.run([logistic_model, a1, a2, a3, a4, a5, a6, a7, b, loss],
+                #feed_dict={x1: x1t, x2: x2t, x3: x3t, x4: x4t, x5: x5t, x6: x6t, x7: x7t, y: y_train})
+                #result = np.around(goodtailr)
+                np.put(classifications, i, result)
+            #print(classifications)
+            classifications = classifications.astype(int)
+            #print(classifications)
+            #print(classifications.tolist())
+            json_data = json.dumps(classifications.tolist())
+            #print(json_data)
+            fucking_cookie = test_req.cookies['session_id']
+            fucking_dict = {}
+            fucking_dict['session_id'] = fucking_cookie
+            print(len(json_test))
+            print(len(json_data))
+            #jar = test_req.cookies
+            sub_req = s.post(base_url + '/predict', json = json_data, cookies = fucking_dict)
+            #print(sub_req.cookies)
+            #print(sub_req.cookies)
+            print(sub_req.status_code)
+            print(sub_req.text)
+            # TEST!
+        except ValueError as e:
+            print("JSON decoder value error: {}".format(e))
+    else:
+        print('bad HTTP request: error ' + str(train_req.status_code))
+else:
+    print("training failed. testing aborted")
