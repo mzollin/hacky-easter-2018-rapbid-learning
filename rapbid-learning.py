@@ -139,15 +139,16 @@ if lossc < 0.1:
     if train_req.status_code == requests.codes.ok:
         try:
             json_test = test_req.json()['data']
-            classifications = np.array(np.empty(len(json_test)))
-            for i in range(len(json_test)):
-                x1t = gender_ints[json_test[i][1]]
-                x2t = json_test[i][2]
-                x3t = color_ints[json_test[i][3]]
-                x4t = json_test[i][4]
-                x5t = json_test[i][5]
-                x6t = json_test[i][6]
-                x7t = int(json_test[i][7])
+            #classifications = np.array(np.empty(len(json_test)))
+            classifications = np.array([])
+            for i in json_test:
+                x1t = gender_ints[i[1]]
+                x2t = i[2]
+                x3t = color_ints[i[3]]
+                x4t = i[4]
+                x5t = i[5]
+                x6t = i[6]
+                x7t = int(i[7])
                 outp = a1c*x1t + a2c*x2t + a3c*x3t + a4c*x4t + a5c*x5t + a6c*x6t + a7c*x7t + bc
                 result = np.around(1 / (1 + np.exp(-outp)))
                 #print(a1c*x1t + a2c*x2t + a3c*x3t + a4c*x4t + a5c*x5t + a6c*x6t + a7c*x7t + bc)
@@ -155,24 +156,27 @@ if lossc < 0.1:
                 #goodtailr, a1r, a2r, a3r, a4r, a5r, a6r, a7r, br, lossr = session.run([logistic_model, a1, a2, a3, a4, a5, a6, a7, b, loss],
                 #feed_dict={x1: x1t, x2: x2t, x3: x3t, x4: x4t, x5: x5t, x6: x6t, x7: x7t, y: y_train})
                 #result = np.around(goodtailr)
-                np.put(classifications, i, result)
-            #print(classifications)
+                #np.put(classifications, i, result)
+                classifications = np.append(classifications, result)
+            print(len(classifications))
             classifications = classifications.astype(int)
             #print(classifications)
             #print(classifications.tolist())
-            json_data = json.dumps(classifications.tolist())
+            json_data = classifications.tolist()
+            print(len(json_data))
             #print(json_data)
             fucking_cookie = test_req.cookies['session_id']
             fucking_dict = {}
             fucking_dict['session_id'] = fucking_cookie
-            print(len(json_test))
-            print(len(json_data))
+            #print(len(json_test))
+            #print(len(json_data))
             #jar = test_req.cookies
             sub_req = s.post(base_url + '/predict', json = json_data, cookies = fucking_dict)
             #print(sub_req.cookies)
             #print(sub_req.cookies)
             print(sub_req.status_code)
             print(sub_req.text)
+            print(fucking_cookie)
             # TEST!
         except ValueError as e:
             print("JSON decoder value error: {}".format(e))
