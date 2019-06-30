@@ -147,13 +147,13 @@ if lossc < 1:
                 classifications = np.append(classifications, result)
             classifications = classifications.astype(int)
             json_data = classifications.tolist()
-            fucking_cookie = test_req.cookies['session_id']
-            fucking_dict = {}
-            fucking_dict['session_id'] = fucking_cookie
-            sub_req = s.post(base_url + '/predict', json = json_data, cookies = fucking_dict)
+            irritating_cookie = test_req.cookies['session_id']
+            irritating_dict = {}
+            irritating_dict['session_id'] = irritating_cookie
+            sub_req = s.post(base_url + '/predict', json = json_data, cookies = irritating_dict)
             print(sub_req.status_code)
             print(sub_req.text)
-            print(fucking_cookie)
+            print(irritating_cookie)
             # get reward!
         except ValueError as e:
             print("JSON decoder value error: {}".format(e))
